@@ -10,9 +10,11 @@ module EM::FTPD
 
       path = build_path(param)
 
-      @driver.delete_file(path) do |result|
+      @driver.delete_file(path) do |result, msg|
         if result
           send_response "250 File deleted"
+        else if msg
+          send_response "550 #{msg}"
         else
           send_action_not_taken
         end
@@ -36,10 +38,12 @@ module EM::FTPD
 
       path = build_path(param)
 
-      @driver.get_file(path) do |data|
+      @driver.get_file(path) do |data, msg|
         if data
           send_response "150 Data transfer starting #{data.size} bytes"
           send_outofband_data(data, @restart_pos || 0)
+        elsif msg
+          send_response "551 #{msg}"
         else
           send_response "551 file not available"
         end
@@ -60,9 +64,11 @@ module EM::FTPD
       send_unauthorised and return unless logged_in?
       send_param_required and return if param.nil?
 
-      @driver.rename(@from_filename, build_path(param)) do |result|
+      @driver.rename(@from_filename, build_path(param)) do |result, msg|
         if result
           send_response "250 File renamed."
+        elsif msg
+          send_response "550 #{msg}"
         else
           send_action_not_taken
         end
@@ -74,9 +80,11 @@ module EM::FTPD
       send_unauthorised and return unless logged_in?
       send_param_required and return if param.nil?
 
-      @driver.bytes(build_path(param)) do |bytes|
+      @driver.bytes(build_path(param)) do |bytes, msg|
         if bytes
           send_response "213 #{bytes}"
+        elsif msg
+          send_response "450 #{msg}"
         else
           send_response "450 file not available"
         end
@@ -103,9 +111,11 @@ module EM::FTPD
       wait_for_datasocket do |datasocket|
         if datasocket
           send_response "150 Data transfer starting"
-          @driver.put_file_streamed(target_path, datasocket) do |bytes|
+          @driver.put_file_streamed(target_path, datasocket) do |bytes, msg|
             if bytes
               send_response "226 OK, received #{bytes} bytes"
+            elsif msg
+              send_response "550 #{msg}"
             else
               send_action_not_taken
             end
@@ -128,9 +138,11 @@ module EM::FTPD
         datasocket.callback {
           puts "data transfer finished"
           tmpfile.flush
-          @driver.put_file(target_path, tmpfile.path) do |bytes|
+          @driver.put_file(target_path, tmpfile.path) do |bytes, msg|
             if bytes
               send_response "226 OK, received #{bytes} bytes"
+            elsif msg
+              send_response "550 #{msg}"
             else
               send_action_not_taken
             end
