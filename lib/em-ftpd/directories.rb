@@ -15,10 +15,12 @@ module EM::FTPD
       send_unauthorised and return unless logged_in?
       path = build_path(param)
 
-      @driver.change_dir(path) do |result|
+      @driver.change_dir(path) do |result, msg|
         if result
           @name_prefix = path
           send_response "250 Directory changed to #{path}"
+        elsif msg
+          send_response "550 #{msg}"
         else
           send_permission_denied
         end
@@ -33,9 +35,11 @@ module EM::FTPD
       send_unauthorised and return unless logged_in?
       send_param_required and return if param.nil?
 
-      @driver.make_dir(build_path(param)) do |result|
+      @driver.make_dir(build_path(param)) do |result, msg|
         if result
           send_response "257 Directory created"
+        elsif msg
+          send_response "550 #{msg}"
         else
           send_action_not_taken
         end
@@ -70,13 +74,19 @@ module EM::FTPD
 
       param = '' if param.to_s == '-a'
 
-      @driver.dir_contents(build_path(param)) do |files|
-        now = Time.now
-        lines = files.map { |item|
-          sizestr = (item.size || 0).to_s.rjust(12)
-          "#{item.directory ? 'd' : '-'}#{item.permissions || 'rwxrwxrwx'} 1 #{item.owner || 'owner'}  #{item.group || 'group'} #{sizestr} #{(item.time || now).strftime("%b %d %H:%M")} #{item.name}"
-        }
-        send_outofband_data(lines)
+      @driver.dir_contents(build_path(param)) do |result, files, msg|
+        if result
+          now = Time.now
+          lines = files.map { |item|
+            sizestr = (item.size || 0).to_s.rjust(12)
+            "#{item.directory ? 'd' : '-'}#{item.permissions || 'rwxrwxrwx'} 1 #{item.owner || 'owner'}  #{item.group || 'group'} #{sizestr} #{(item.time || now).strftime("%b %d %H:%M")} #{item.name}"
+          }
+          send_outofband_data(lines)
+        elsif msg
+          send_response "550 #{msg}"
+        else
+          send_permission_denied
+        end
       end
     end
 
@@ -94,9 +104,11 @@ module EM::FTPD
       send_unauthorised and return unless logged_in?
       send_param_required and return if param.nil?
 
-      @driver.delete_dir(build_path(param)) do |result|
+      @driver.delete_dir(build_path(param)) do |result, msg|
         if result
           send_response "250 Directory deleted."
+        elsif msg
+          send_response "550 #{msg}"
         else
           send_action_not_taken
         end
