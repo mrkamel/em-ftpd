@@ -13,7 +13,7 @@ module EM::FTPD
       @driver.delete_file(path) do |result, msg|
         if result
           send_response "250 File deleted"
-        else if msg
+        elsif msg
           send_response "550 #{msg}"
         else
           send_action_not_taken
