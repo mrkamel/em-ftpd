@@ -16,7 +16,7 @@ module EM::FTPD
 
     COMMANDS = %w[quit type user retr stor eprt port cdup cwd dele rmd pwd
                   list size syst mkd pass xcup xpwd xcwd xrmd rest allo nlst
-                  pasv epsv help noop mode rnfr rnto stru feat]
+                  pasv epsv help noop mode rnfr rnto stru feat utf8]
 
     attr_reader :root, :name_prefix
     attr_accessor :datasocket
@@ -115,6 +115,14 @@ module EM::FTPD
       }
       send_response str, true
       send_response "214 End of list."
+    end
+
+    def cmd_opts(param)
+      if param.to_s.upcase == "UTF8 ON"
+        send_response "200 Success #{LBRK}"
+      else
+        send_response "500 Unknown command #{LBRK}"
+      end
     end
 
     def cmd_feat(param)
