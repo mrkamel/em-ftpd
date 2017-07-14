@@ -118,6 +118,8 @@ module EM::FTPD
     end
 
     def cmd_opts(param)
+      send_param_required and return if param.nil?
+
       if param.to_s.upcase == "UTF8 ON"
         send_response "200 Success #{LBRK}"
       else

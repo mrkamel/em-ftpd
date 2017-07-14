@@ -14,11 +14,11 @@ class TestDriver
   def dir_contents(path, &block)
     yield case path
           when "/"      then
-            [ dir_item("."), dir_item(".."), dir_item("files"), file_item("one.txt", FILE_ONE.bytesize) ]
+            [ true, [ dir_item("."), dir_item(".."), dir_item("files"), file_item("one.txt", FILE_ONE.bytesize) ] ]
           when "/files" then
-            [ dir_item("."), dir_item(".."), file_item("two.txt", FILE_TWO.bytesize) ]
+            [ true, [ dir_item("."), dir_item(".."), file_item("two.txt", FILE_TWO.bytesize) ] ]
           else
-            []
+            [ true ]
           end
   end
 
